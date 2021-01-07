@@ -1,37 +1,54 @@
 import React, { FC, PropsWithChildren } from 'react';
-import { StyleSheet, Text, View, Dimensions, TouchableOpacity, Image,  TouchableHighlight } from 'react-native';
+import { StyleSheet, Text, View, Dimensions, TouchableOpacity, Image, TouchableHighlight } from 'react-native';
 import { Contact } from '../containers/contactList'
 import colors from '../colors';
 
 interface Props {
     clickFunction: (contact: Contact) => void,
     data: Contact,
-    index: number
+    index: number,
+}
+interface State {
+    checked: boolean
 }
 
-class ContactItem extends React.Component<Props>{
-
+class ContactItem extends React.Component<Props, State>{
 
     constructor(props: Props) {
         super(props);
+        this.state = {
+            checked: this.props.data.checked
+
+        }
+        // this.someFunction=this.someFunction.bind(this)
     }
 
+    // someFunction(x){
+    //     console.log(x);
+    //     console.log("gg");
+
+    // }
     componentDidMount() {
-        // console.log(this.props.index);
+        console.log(this.props.index);
 
     }
-    shouldComponentUpdate(nextProps: Readonly<PropsWithChildren<Props>>, nextState: Readonly<PropsWithChildren<Props>>) {
+    shouldComponentUpdate(nextProps: Readonly<Props>, nextState: Readonly<State>) {
         // return false
-        const isSelected: Contact = nextProps.data;
-        const prevIsSelected: Contact = this.props.data;
+        const isSelected: boolean = nextState.checked;
+        const prevIsSelected: boolean = this.state.checked;
 
         const isSameSelectedState = isSelected == prevIsSelected;
+        if (isSelected == prevIsSelected) { }
+        else {
+
+        }
         // console.log(isSelected == prevIsSelected);
 
         return !isSameSelectedState;
     }
     changeState() {
-        // this.props.data.checked=!this.props.data.checked
+        this.props.data.checked = !this.props.data.checked
+        this.setState({ checked: this.props.data.checked })
         this.props.clickFunction(this.props.data)
     }
     render() {
@@ -53,14 +70,15 @@ class ContactItem extends React.Component<Props>{
                 </View>
                 <View style={styles.iconContainer}>
                     <TouchableOpacity
-                        style={[styles.touchableStyle, { backgroundColor: this.props.data.checked ? 'green' : 'red' }]}
-
+                        style={styles.touchableStyle}
                         onPress={() => { this.changeState() }}
                     >
-
+                        {this.state.checked && <Image
+                            style={styles.badgeStyle}
+                            source={require("../assets/icons/check.png")}
+                        />}
                     </TouchableOpacity>
                 </View>
-
             </View>
 
         )
@@ -76,7 +94,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 10
+        paddingHorizontal: 10,
 
     },
     imageStyle: {
@@ -118,11 +136,21 @@ const styles = StyleSheet.create({
 
     },
     touchableStyle: {
+        height: 33.7,
+        width: 33.7,
+        backgroundColor: colors.primary,
+        borderRadius: 34,
+        borderWidth: 2,
+        borderColor: colors.white,
+        alignContent: 'center',
+        justifyContent: 'center'
+    },
+    badgeStyle: {
         height: 30,
         width: 30,
+        resizeMode: 'contain'
+    },
 
-        borderRadius: 30
-    }
 
 });
 export default ContactItem

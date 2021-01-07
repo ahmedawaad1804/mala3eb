@@ -5,7 +5,6 @@ import { Contact } from '../containers/contactList'
 import colors from '../colors';
 
 interface Props {
-    removeFunction: (contact: Contact) => void,
     data: Contact,
     index: number
 }
@@ -31,12 +30,7 @@ class SelectedItem extends React.Component<Props>{
                 }{this.props.data.name.length < 11 ?
                     <Text style={styles.smallFont}>{this.props.data.name}</Text> :
                     <Text style={styles.smallFont}>{this.props.data.name.substring(0, 8) + "..."}</Text>}
-                <TouchableOpacity style={styles.badgeOpacity} onPress={() => { this.props.removeFunction(this.props.data) }}>
-                    <Image
-                        style={styles.badgeStyle}
-                        source={require("../assets/icons/delete.png")}
-                    />
-                </TouchableOpacity>
+                
             </View>
 
         )
@@ -71,17 +65,7 @@ const styles = StyleSheet.create({
         fontWeight: 'bold'
 
     },
-    badgeStyle: {
-
-        height: 30,
-        width: 30,
-        resizeMode: 'contain'
-    },
-    badgeOpacity: {
-        position: 'absolute',
-        top: 10,
-        right: 0,
-    },
+   
     smallFont: {
         color: colors.grey
     }

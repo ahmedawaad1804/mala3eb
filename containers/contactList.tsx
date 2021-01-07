@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, Dimensions, FlatList, ListRenderItem, SectionList } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, Dimensions, FlatList, SectionList, TextInput } from 'react-native';
 import * as Contacts from 'expo-contacts';
 import colors from '../colors'
 import ContactItem from '../components/contactItem'
@@ -10,7 +10,7 @@ import SelectedItem from '../components/selectedItem'
 
 export interface ContactGroup {
     title: string;
-    data: Array<Contacts.Contact>;
+    data: Array<Contact>;
 }
 export interface Contact extends Contacts.Contact {
 
@@ -21,7 +21,11 @@ interface State {
     _isPermissionGranted: boolean;
     contacts: Array<Contact>;
     group: Array<ContactGroup>;
+    changingNames: Array<Contact>;
+    changingGroup: Array<ContactGroup>;
+    changingGroupSecondary: Array<ContactGroup>;
     selectedContacts: Array<Contact>;
+    refresh: boolean
 }
 
 export default class Adress extends React.Component<{}, State> {
@@ -31,7 +35,12 @@ export default class Adress extends React.Component<{}, State> {
             _isPermissionGranted: true,
             contacts: [],
             selectedContacts: [],
-            group: []
+            group: [],
+            changingGroup: [],
+            changingGroupSecondary: [],
+            changingNames: [],
+            refresh: true
+
 
         };
     }
@@ -42,17 +51,12 @@ export default class Adress extends React.Component<{}, State> {
         await this.getContactsPermission()
         if (this.state._isPermissionGranted) {
             const { data } = await Contacts.getContactsAsync({ sort: Contacts.SortTypes.FirstName });
-            // data.forEach(item => {
-            //     if (item.imageAvailable) {
-            // console.log(data);
-            //     }
-            // })
+
             if (data.length > 0) {
                 await this.setState({ contacts: data })
 
             }
             let startIndex: number = 0
-            // to get initial alphabitic index
             for (let index: number = 0; index < data.length; index++) {
                 if (data[index].name.charAt(0) === 'a' || data[index].name.charAt(0) === 'A') {
                     startIndex = index
@@ -66,37 +70,23 @@ export default class Adress extends React.Component<{}, State> {
             // save in groups alphabetically
             for (let i = 97; i < 123; i++) {
 
-                // contactGroup.char = String.fromCharCode(i)
                 contactArr = []
                 for (let index = startIndex; index < data.length; index++) {
 
                     if (data[index].name.charAt(0) == String.fromCharCode(i) || data[index].name.charAt(0) == String.fromCharCode(i - 32)) {
 
-                        // contactDataItem =data[index]
                         contactArr.push(data[index])
-                        // console.log(typeof(data[index]) );
-
-
                     }
                     else {
-                        // console.log("break");
-                        // console.log(contactArr);
-
                         startIndex = index
                         break
                     }
                 }
                 contactGroup = { title: String.fromCharCode(i - 32), data: contactArr }
                 contactGroupArray.push(contactGroup)
-
-                //     console.log(String.fromCharCode(i));
-                // console.log(String.fromCharCode(i - 32));
-
             }
-            this.setState({ group: contactGroupArray })
-
+            this.setState({ group: contactGroupArray, changingGroup: contactGroupArray })
         }
-        // this.setState({ contacts: [{id:5,name:"ff"},{id:6,name:"ss"}] })
     }
     async getContactsPermission() {
 
@@ -107,34 +97,70 @@ export default class Adress extends React.Component<{}, State> {
 
     }
     Add(item: Contact) {
-        item.checked = true
-        console.log(item);
+        // item.checked = !item.checked
         if (item.checked) {
             this.state.selectedContacts.push(item)
+            this.setState({ selectedContacts: this.state.selectedContacts })
         }
-        this.setState({ selectedContacts: this.state.selectedContacts })
-
+        else {
+            this.saveChange(item)
+        }
+    }
+    saveChange(item: Contact) {
+        this.state.selectedContacts.splice(this.state.selectedContacts.findIndex(obj => obj.id == item.id), 1);
+        this.setState({ selectedContacts: this.state.selectedContacts, refresh: !this.state.refresh })
     }
     remove(item: Contact) {
-        item.checked = false
-        this.state.selectedContacts.splice(this.state.selectedContacts.findIndex(obj => obj.id == item.id), 1);
-        this.setState({ selectedContacts: this.state.selectedContacts })
 
+        this.saveChange(item)
 
     }
+
     _renderItem = (item: Contact, index: number) => (
         <ContactItemComponent data={item} index={index} clickFunction={(contact: Contact) => this.Add(contact)} />
     );
     _flatListrenderItem = (item: Contact, index: number) => (
-        <SelectedItem data={item} index={index} removeFunction={(contact: Contact) => this.remove(contact)} />
+        <SelectedItem data={item} index={index} />
     );
+    _handleSearch(text: string) {
+        if (text.length == 0) {
+            this.setState({ changingGroup: this.state.group })
+        }
+        else if (text.length == 1) {
+            for (const iterator of this.state.group) {
+                if (iterator.title == text.toUpperCase()) {
+                    console.log(text);
+                    this.setState({ changingGroup: [iterator], changingGroupSecondary: [iterator] })
+                    break
+                }
+            }
+        }
+        else if (text.length > 1) {
+            let contactGroup = [] as Array<Contact>;
+            for (const iterator of this.state.changingGroupSecondary[0].data) {
+                if (iterator.name.toUpperCase().includes(text.toUpperCase())) {
+                    contactGroup.push(iterator)
 
+                }
+            }
+            this.setState({ changingGroup: [{ title: this.state.changingGroupSecondary[0].title, data: contactGroup }] })
+        }
+
+    }
     render() {
         return (
             <View style={styles.container}>
 
                 {this.state._isPermissionGranted ?
                     <View style={styles.container}>
+                        <View style={styles.textInputContainer}>
+                            <TextInput
+                                style={styles.textInputStyle}
+                                placeholder={"Search"}
+                                onChangeText={(text) => this._handleSearch(text)}
+                            ></TextInput>
+                        </View>
+
                         <FlatList
                             data={this.state.selectedContacts}
                             horizontal
@@ -142,7 +168,9 @@ export default class Adress extends React.Component<{}, State> {
                                 this._flatListrenderItem(item, index)}
                         />
                         <SectionList
-                            sections={this.state.group}
+                        style={{alignSelf:'stretch'}}
+                            extraData={this.state.refresh}
+                            sections={this.state.changingGroup}
                             renderItem={({ item, index }: { item: Contact, index: number }) =>
                                 this._renderItem(item, index)}
                             renderSectionHeader={({ section }) => (
@@ -152,9 +180,6 @@ export default class Adress extends React.Component<{}, State> {
                             )}
                             ItemSeparatorComponent={({ }) => (
                                 <View style={styles.itemSeparator}>
-                                    <View style={styles.innerItemSeparator}>
-
-                                    </View>
                                 </View>
                             )}
                             keyExtractor={(item, index) => item.id}
@@ -176,8 +201,8 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.primary,
-        alignItems: 'center',
-        justifyContent: 'center',
+        alignItems: 'flex-start',
+        justifyContent: 'flex-start',
     },
     btnStyle: {
         height: 50,
@@ -209,14 +234,24 @@ const styles = StyleSheet.create({
         paddingHorizontal: 15
     },
     itemSeparator: {
-        height: 1,
+
         width: Dimensions.get('window').width * 5 / 6,
         backgroundColor: colors.grey,
         alignSelf: 'flex-end'
     },
-    innerItemSeparator: {
-        // height:1,
-        // width: Dimensions.get('window').width*1/6 ,
-        // backgroundColor:colors.primary
-    }
+    textInputContainer: {
+        width: Dimensions.get('window').width,
+        height: Dimensions.get('window').height * 4 / 50,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: colors.headerSectionList,
+    },
+    textInputStyle: {
+        width: Dimensions.get('window').width * 5 / 6,
+        height: Dimensions.get('window').height * 3 / 50,
+        backgroundColor: colors.white,
+        borderRadius: 5,
+        paddingHorizontal: 20
+
+    },
 });
